@@ -1,0 +1,231 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contagem de Produtos - Tema Escuro</title>
+  <style>
+    :root {
+      --bg: #1e1e1e;
+      --text: #f0f0f0;
+      --table-bg: #2c2c2c;
+      --border: #555;
+      --input-bg: #3a3a3a;
+      --highlight: #4caf50;
+    }
+
+    body {
+      font-family: sans-serif;
+      padding: 10px;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--table-bg);
+      margin-top: 20px;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 8px;
+      text-align: center;
+    }
+
+    input[type="number"] {
+      width: 80px;
+      padding: 4px;
+      background: var(--input-bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      text-align: center;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      min-width: 150px;
+      padding: 4px;
+      background: var(--input-bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background: var(--highlight);
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #3e8e41;
+    }
+
+    tfoot td {
+      font-weight: bold;
+      background: #444;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Contagem de Produtos</h1>
+
+  <table id="tabela-produtos">
+    <thead>
+      <tr>
+        <th>Produto</th>
+        <th>Grupo</th>
+        <th>Estoque</th>
+        <th>Bar</th>
+        <th>Avaria</th>
+        <th>Total</th>
+        <th>Remover</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+    <tfoot>
+      <tr>
+        <td colspan="5" style="text-align:right">Total Geral:</td>
+        <td id="total-geral">0</td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <button id="btn-adicionar">+ Adicionar Produto</button>
+
+  <script>
+    const tbody = document.querySelector("#tabela-produtos tbody");
+    const totalGeralEl = document.getElementById("total-geral");
+    const btnAdicionar = document.getElementById("btn-adicionar");
+
+    function salvarDados() {
+      const dados = [];
+      tbody.querySelectorAll("tr").forEach(tr => {
+        const inputs = tr.querySelectorAll("input");
+        dados.push({
+          nome: inputs[0].value,
+          grupo: inputs[1].value,
+          estoque: inputs[2].value,
+          bar: inputs[3].value,
+          avaria: inputs[4].value
+        });
+      });
+      localStorage.setItem("produtos", JSON.stringify(dados));
+    }
+
+    function criarLinha(produto) {
+      const tr = document.createElement("tr");
+
+      function criarInputText(value) {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.value = value || "";
+        input.oninput = salvarDados;
+        return input;
+      }
+
+      function criarInputNumber(value) {
+        const input = document.createElement("input");
+        input.type = "number";
+        input.min = 0;
+        input.value = value || 0;
+        input.oninput = () => {
+          atualizarTotalLinha();
+          salvarDados();
+        };
+        return input;
+      }
+
+      const tdNome = document.createElement("td");
+      const inputNome = criarInputText(produto.nome);
+      tdNome.appendChild(inputNome);
+
+      const tdGrupo = document.createElement("td");
+      const inputGrupo = criarInputText(produto.grupo);
+      tdGrupo.appendChild(inputGrupo);
+
+      const tdEstoque = document.createElement("td");
+      const inputEstoque = criarInputNumber(produto.estoque);
+      tdEstoque.appendChild(inputEstoque);
+
+      const tdBar = document.createElement("td");
+      const inputBar = criarInputNumber(produto.bar);
+      tdBar.appendChild(inputBar);
+
+      const tdAvaria = document.createElement("td");
+      const inputAvaria = criarInputNumber(produto.avaria);
+      tdAvaria.appendChild(inputAvaria);
+
+      const tdTotal = document.createElement("td");
+      tdTotal.textContent = "0";
+
+      const tdRemover = document.createElement("td");
+      const btnRemover = document.createElement("button");
+      btnRemover.textContent = "X";
+      btnRemover.style.background = "#c00";
+      btnRemover.style.color = "#fff";
+      btnRemover.style.border = "none";
+      btnRemover.style.cursor = "pointer";
+      btnRemover.onclick = () => {
+        tr.remove();
+        salvarDados();
+        atualizarTotalGeral();
+      };
+      tdRemover.appendChild(btnRemover);
+
+      tr.append(tdNome, tdGrupo, tdEstoque, tdBar, tdAvaria, tdTotal, tdRemover);
+
+      function atualizarTotalLinha() {
+        const e = parseInt(inputEstoque.value) || 0;
+        const b = parseInt(inputBar.value) || 0;
+        const a = parseInt(inputAvaria.value) || 0;
+        tdTotal.textContent = e + b + a;
+        atualizarTotalGeral();
+      }
+
+      atualizarTotalLinha();
+      return tr;
+    }
+
+    function atualizarTotalGeral() {
+      let soma = 0;
+      tbody.querySelectorAll("tr").forEach(tr => {
+        const total = parseInt(tr.children[5].textContent) || 0;
+        soma += total;
+      });
+      totalGeralEl.textContent = soma;
+    }
+
+    function carregarTabela() {
+      tbody.innerHTML = "";
+      const salvos = JSON.parse(localStorage.getItem("produtos")) || [];
+      salvos.forEach(prod => {
+        const linha = criarLinha(prod);
+        tbody.appendChild(linha);
+      });
+      atualizarTotalGeral();
+    }
+
+    btnAdicionar.addEventListener("click", () => {
+      const novaLinha = criarLinha({ nome: "", grupo: "", estoque: 0, bar: 0, avaria: 0 });
+      tbody.appendChild(novaLinha);
+      salvarDados();
+    });
+
+    carregarTabela();
+  </script>
+
+</body>
+</html>
